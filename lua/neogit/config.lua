@@ -387,8 +387,8 @@ end
 ---@field preview_buffer? NeogitConfigPopup Preview options
 ---@field popup? NeogitConfigPopup Set the default way of opening popups
 ---@field signs? NeogitConfigSigns Signs used for toggled regions
----@field integrations? { diffview: boolean, vscode_diff: boolean, telescope: boolean, fzf_lua: boolean, mini_pick: boolean, snacks: boolean } Which integrations to enable
----@field diff_viewer? "diffview"|"vscode_diff"|nil Which diff viewer to use (nil = auto-detect)
+---@field integrations? { diffview: boolean, codediff: boolean, telescope: boolean, fzf_lua: boolean, mini_pick: boolean, snacks: boolean } Which integrations to enable
+---@field diff_viewer? "diffview"|"codediff"|nil Which diff viewer to use (nil = auto-detect)
 ---@field sections? NeogitConfigSections
 ---@field ignored_settings? string[] Settings to never persist, format: "Filetype--cli-value", i.e. "NeogitCommitPopup--author"
 ---@field mappings? NeogitConfigMappings
@@ -541,7 +541,7 @@ function M.get_default_values()
     integrations = {
       telescope = nil,
       diffview = nil,
-      vscode_diff = nil,
+      codediff = nil,
       fzf_lua = nil,
       mini_pick = nil,
       snacks = nil,
@@ -864,7 +864,7 @@ function M.validate_config()
       return
     end
 
-    local valid_viewers = { "diffview", "vscode_diff" }
+    local valid_viewers = { "diffview", "codediff" }
     if not vim.tbl_contains(valid_viewers, config.diff_viewer) then
       err(
         "diff_viewer",
@@ -878,7 +878,7 @@ function M.validate_config()
   end
 
   local function validate_integrations()
-    local valid_integrations = { "diffview", "vscode_diff", "telescope", "fzf_lua", "mini_pick", "snacks" }
+    local valid_integrations = { "diffview", "codediff", "telescope", "fzf_lua", "mini_pick", "snacks" }
     if not validate_type(config.integrations, "integrations", "table") or #config.integrations == 0 then
       return
     end
@@ -1331,7 +1331,7 @@ function M.check_integration(name)
 end
 
 ---Returns the configured diff viewer, or auto-detects if not set
----@return string|nil The diff viewer to use ("diffview", "vscode_diff"), or nil if none available
+---@return string|nil The diff viewer to use ("diffview", "codediff"), or nil if none available
 function M.get_diff_viewer()
   local logger = require("neogit.logger")
   local viewer = M.values.diff_viewer

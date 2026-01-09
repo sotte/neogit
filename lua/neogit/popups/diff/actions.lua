@@ -4,7 +4,7 @@ local FuzzyFinderBuffer = require("neogit.buffers.fuzzy_finder")
 
 local function get_diff_integration()
   local viewer = config.get_diff_viewer()
-  if viewer == "vscode_diff" then
+  if viewer == "codediff" then
     return require("neogit.integrations.codediff")
   else
     return require("neogit.integrations.diffview")
