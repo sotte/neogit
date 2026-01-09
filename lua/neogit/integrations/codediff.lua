@@ -1,7 +1,6 @@
 local M = {}
 
 local git = require("neogit.lib.git")
-local Watcher = require("neogit.watcher")
 
 ---@param section_name string
 ---@param item_name    string|string[]|nil
@@ -23,13 +22,14 @@ function M.open(section_name, item_name, opts)
 
   local git_root = git.repo.worktree_root
 
-  -- Map Neogit sections to vscode-diff commands
+  -- Map Neogit sections to codediff commands
+  -- selene: allow(if_same_then_else)
   if section_name == "staged" or section_name == "unstaged" or section_name == "merge" then
     -- Explorer mode for local changes (like :CodeDiff with no args)
     codediff_git.get_status(git_root, function(err, status_result)
       if err then
         vim.schedule(function()
-          vim.notify("vscode-diff: " .. err, vim.log.levels.ERROR)
+          vim.notify("codediff: " .. err, vim.log.levels.ERROR)
         end)
         return
       end
@@ -50,8 +50,11 @@ function M.open(section_name, item_name, opts)
         view.create(session_config, "")
       end)
     end)
-
-  elseif section_name == "recent" or section_name == "log" or (section_name and section_name:match("unmerged$")) then
+  elseif
+    section_name == "recent"
+    or section_name == "log"
+    or (section_name and section_name:match("unmerged$"))
+  then
     -- Commit diff (like :CodeDiff <commit>)
     local range
     if type(item_name) == "table" then
@@ -64,7 +67,7 @@ function M.open(section_name, item_name, opts)
     codediff_git.get_diff_revisions(range[1], range[2], git_root, function(err, status_result)
       if err then
         vim.schedule(function()
-          vim.notify("vscode-diff: " .. err, vim.log.levels.ERROR)
+          vim.notify("codediff: " .. err, vim.log.levels.ERROR)
         end)
         return
       end
@@ -85,7 +88,6 @@ function M.open(section_name, item_name, opts)
         view.create(session_config, "")
       end)
     end)
-
   elseif section_name == "range" and item_name then
     -- Range diff (like :CodeDiff rev1 rev2)
     -- item_name is "rev1..rev2" or "rev1...rev2"
@@ -98,7 +100,7 @@ function M.open(section_name, item_name, opts)
       codediff_git.get_diff_revisions(rev1, rev2, git_root, function(err, status_result)
         if err then
           vim.schedule(function()
-            vim.notify("vscode-diff: " .. err, vim.log.levels.ERROR)
+            vim.notify("codediff: " .. err, vim.log.levels.ERROR)
           end)
           return
         end
@@ -120,14 +122,13 @@ function M.open(section_name, item_name, opts)
         end)
       end)
     end
-
   elseif (section_name == "stashes" or section_name == "commit") and item_name then
     -- Stash or commit diff
     local ref = item_name
     codediff_git.resolve_revision(ref, git_root, function(err_resolve, commit_hash)
       if err_resolve then
         vim.schedule(function()
-          vim.notify("vscode-diff: " .. err_resolve, vim.log.levels.ERROR)
+          vim.notify("codediff: " .. err_resolve, vim.log.levels.ERROR)
         end)
         return
       end
@@ -135,7 +136,7 @@ function M.open(section_name, item_name, opts)
       codediff_git.get_diff_revisions(commit_hash .. "^", commit_hash, git_root, function(err, status_result)
         if err then
           vim.schedule(function()
-            vim.notify("vscode-diff: " .. err, vim.log.levels.ERROR)
+            vim.notify("codediff: " .. err, vim.log.levels.ERROR)
           end)
           return
         end
@@ -157,17 +158,13 @@ function M.open(section_name, item_name, opts)
         end)
       end)
     end)
-
   elseif section_name == "conflict" then
     -- Conflict resolution mode
     if item_name then
       -- Single file conflict
       local file_path = type(item_name) == "string" and item_name or item_name[1]
-      local relative_path = codediff_git.get_relative_path(
-        git_root .. "/" .. file_path,
-        git_root
-      )
-      local filetype = vim.filetype.match({ filename = file_path }) or ""
+      local relative_path = codediff_git.get_relative_path(git_root .. "/" .. file_path, git_root)
+      local filetype = vim.filetype.match { filename = file_path } or ""
 
       ---@type SessionConfig
       local session_config = {
@@ -175,8 +172,8 @@ function M.open(section_name, item_name, opts)
         git_root = git_root,
         original_path = relative_path,
         modified_path = relative_path,
-        original_revision = ":3",  -- theirs
-        modified_revision = ":2",  -- ours
+        original_revision = ":3", -- theirs
+        modified_revision = ":2", -- ours
         conflict = true,
       }
       view.create(session_config, filetype)
@@ -185,7 +182,7 @@ function M.open(section_name, item_name, opts)
       codediff_git.get_status(git_root, function(err, status_result)
         if err then
           vim.schedule(function()
-            vim.notify("vscode-diff: " .. err, vim.log.levels.ERROR)
+            vim.notify("codediff: " .. err, vim.log.levels.ERROR)
           end)
           return
         end
@@ -207,13 +204,12 @@ function M.open(section_name, item_name, opts)
         end)
       end)
     end
-
   elseif section_name == "worktree" or (section_name == nil and item_name == nil) then
     -- Worktree diff (all changes) - like :CodeDiff with no args
     codediff_git.get_status(git_root, function(err, status_result)
       if err then
         vim.schedule(function()
-          vim.notify("vscode-diff: " .. err, vim.log.levels.ERROR)
+          vim.notify("codediff: " .. err, vim.log.levels.ERROR)
         end)
         return
       end
@@ -234,14 +230,13 @@ function M.open(section_name, item_name, opts)
         view.create(session_config, "")
       end)
     end)
-
   elseif section_name == nil and item_name ~= nil then
     -- Direct commit reference
     local ref = item_name
     codediff_git.resolve_revision(ref, git_root, function(err_resolve, commit_hash)
       if err_resolve then
         vim.schedule(function()
-          vim.notify("vscode-diff: " .. err_resolve, vim.log.levels.ERROR)
+          vim.notify("codediff: " .. err_resolve, vim.log.levels.ERROR)
         end)
         return
       end
@@ -249,7 +244,7 @@ function M.open(section_name, item_name, opts)
       codediff_git.get_diff_revisions(commit_hash .. "^", commit_hash, git_root, function(err, status_result)
         if err then
           vim.schedule(function()
-            vim.notify("vscode-diff: " .. err, vim.log.levels.ERROR)
+            vim.notify("codediff: " .. err, vim.log.levels.ERROR)
           end)
           return
         end
